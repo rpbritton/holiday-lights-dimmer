@@ -1,0 +1,6 @@
+C:\Users\rpbri\git\holiday-lights-dimmer\holiday-lights-dimmer.cydsn\holiday-lights-dimmer.cyprj|ead253cf-cabf-4e77-adbc-414a73f11712
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|0e8262b3-3ebe-4b1c-a614-d88599a483ea
+C:\Users\rpbri\Documents\PSoC Creator\4.2\Downloads ( 4.2).cylib\Downloads ( 4.2).cyprj|48a3c449-2569-4b53-938b-b85b92ba3644
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|c2e4db62-ada1-4805-bd8f-97efdd382af3
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|e769d32a-2cc0-4ed3-a796-912544985589
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|8e5c875e-4663-4cee-8f25-fbf88c56e92a

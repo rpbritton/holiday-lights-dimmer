@@ -1,0 +1,1859 @@
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m0plus
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 0
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"main.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	__aeabi_dcmpge
+  20              		.global	__aeabi_dsub
+  21              		.global	__aeabi_dmul
+  22              		.global	__aeabi_d2iz
+  23              		.section	.text.Pin_ZC_Handler,"ax",%progbits
+  24              		.align	2
+  25              		.global	Pin_ZC_Handler
+  26              		.code	16
+  27              		.thumb_func
+  28              		.type	Pin_ZC_Handler, %function
+  29              	Pin_ZC_Handler:
+  30              	.LFB33:
+  31              		.file 1 "main.c"
+   1:main.c        **** /******************************************************************************
+   2:main.c        **** * File Name: main.c
+   3:main.c        **** *
+   4:main.c        **** * Version: 1.10
+   5:main.c        **** *
+   6:main.c        **** * Description:  This code example demonstrates a CapSense linear slider with
+   7:main.c        **** * five segments and three CapSense buttons operation. CapSense linear slider and
+   8:main.c        **** * buttons data is sent to CapSense Tuner or EZ-BLE PRoC Module using I2C communication.
+   9:main.c        **** * The CapSense linear slider touch position and buttons status is used to turn ON/OFF
+  10:main.c        **** * corresponding LEDs on the kit. It also demonstrates connectivity between the
+  11:main.c        **** * EZ-BLE PRoC Module (acting as a Peripheral and GATT server device) and mobile device
+  12:main.c        **** * running the CySmart mobile application (acting as a Central and GATT client device).
+  13:main.c        **** * This code example also demonstrates a simple breathing effect of LED with breath-in
+  14:main.c        **** * and breath-out rate of 1 Hz using SmartIO and PWM components.
+  15:main.c        **** *
+  16:main.c        **** * Related Document: CE210709 CapSense Linear Slider and Buttons.pdf
+  17:main.c        **** *
+  18:main.c        **** * Hardware Dependency: See CE210709 CapSense Linear Slider and Buttons.pdf
+  19:main.c        **** *
+  20:main.c        **** *******************************************************************************
+  21:main.c        **** * Copyright (2018), Cypress Semiconductor Corporation. All rights reserved.
+  22:main.c        **** *******************************************************************************
+  23:main.c        **** * This software, including source code, documentation and related materials
+  24:main.c        **** * (“Software”), is owned by Cypress Semiconductor Corporation or one of its
+  25:main.c        **** * subsidiaries (“Cypress”) and is protected by and subject to worldwide patent
+  26:main.c        **** * protection (United States and foreign), United States copyright laws and
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 2
+
+
+  27:main.c        **** * international treaty provisions. Therefore, you may use this Software only
+  28:main.c        **** * as provided in the license agreement accompanying the software package from
+  29:main.c        **** * which you obtained this Software (“EULA”).
+  30:main.c        **** *
+  31:main.c        **** * If no EULA applies, Cypress hereby grants you a personal, nonexclusive,
+  32:main.c        **** * non-transferable license to copy, modify, and compile the Software source
+  33:main.c        **** * code solely for use in connection with Cypress’s integrated circuit products.
+  34:main.c        **** * Any reproduction, modification, translation, compilation, or representation
+  35:main.c        **** * of this Software except as specified above is prohibited without the express
+  36:main.c        **** * written permission of Cypress.
+  37:main.c        **** *
+  38:main.c        **** * Disclaimer: THIS SOFTWARE IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND, 
+  39:main.c        **** * EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, NONINFRINGEMENT, IMPLIED 
+  40:main.c        **** * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Cypress 
+  41:main.c        **** * reserves the right to make changes to the Software without notice. Cypress 
+  42:main.c        **** * does not assume any liability arising out of the application or use of the 
+  43:main.c        **** * Software or any product or circuit described in the Software. Cypress does 
+  44:main.c        **** * not authorize its products for use in any products where a malfunction or 
+  45:main.c        **** * failure of the Cypress product may reasonably be expected to result in 
+  46:main.c        **** * significant property damage, injury or death (“High Risk Product”). By 
+  47:main.c        **** * including Cypress’s product in a High Risk Product, the manufacturer of such 
+  48:main.c        **** * system or application assumes all risk of such use and in doing so agrees to 
+  49:main.c        **** * indemnify Cypress against all liability.
+  50:main.c        **** *******************************************************************************/
+  51:main.c        **** /*******************************************************************************
+  52:main.c        **** *   Included Headers
+  53:main.c        **** *******************************************************************************/
+  54:main.c        **** #include "CapSense.h"
+  55:main.c        **** #include <project.h>
+  56:main.c        **** 
+  57:main.c        **** /*****************************************************************************
+  58:main.c        **** * MACRO Definitions
+  59:main.c        **** *****************************************************************************/     
+  60:main.c        **** 
+  61:main.c        **** /* Boolean constants */
+  62:main.c        **** #define LED_ON						(0u)
+  63:main.c        **** #define LED_OFF						(1u)
+  64:main.c        **** 
+  65:main.c        **** /* Finite state machine states for device operating states 
+  66:main.c        ****     SENSOR_SCAN - Sensors are scanned in this state
+  67:main.c        ****     WAIT_FOR_SCAN_COMPLETE - CPU is put to sleep in this state
+  68:main.c        ****     PROCESS_DATA - Sensor data is processed, LEDs are controlled */
+  69:main.c        **** typedef enum
+  70:main.c        **** {
+  71:main.c        ****     SENSOR_SCAN = 0x01u,                
+  72:main.c        ****     WAIT_FOR_SCAN_COMPLETE = 0x02u,     
+  73:main.c        ****     PROCESS_DATA = 0x03u,               
+  74:main.c        **** } DEVICE_STATE;
+  75:main.c        **** 
+  76:main.c        **** /* Defining step size for LED control based on centroid position of slider. */
+  77:main.c        **** #define STEP_SIZE (CapSense_SLD_X_RESOLUTION/CapSense_SLD_NUM_SENSORS)
+  78:main.c        **** 
+  79:main.c        **** //uint32_t pwmValue;
+  80:main.c        **** volatile double value;
+  81:main.c        **** 
+  82:main.c        **** CY_ISR( Pin_ZC_Handler )
+  83:main.c        **** {
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 3
+
+
+  32              		.loc 1 83 0
+  33              		.cfi_startproc
+  34              		@ args = 0, pretend = 0, frame = 0
+  35              		@ frame_needed = 0, uses_anonymous_args = 0
+  36 0000 10B5     		push	{r4, lr}
+  37              		.cfi_def_cfa_offset 8
+  38              		.cfi_offset 4, -8
+  39              		.cfi_offset 14, -4
+  84:main.c        ****     // 1 full 60hz wave = 1/60 = 16.667ms
+  85:main.c        ****     // 1 zero cross = 1/2 wave = 8.333ms
+  86:main.c        ****     // 8.333ms = 83333us
+  87:main.c        ****     // (8333us-10us)/1 = 8323
+  88:main.c        ****     if(value >= 0.05)
+  40              		.loc 1 88 0
+  41 0002 124B     		ldr	r3, .L5
+  42 0004 1868     		ldr	r0, [r3]
+  43 0006 5968     		ldr	r1, [r3, #4]
+  44 0008 114A     		ldr	r2, .L5+4
+  45 000a 124B     		ldr	r3, .L5+8
+  46 000c FFF7FEFF 		bl	__aeabi_dcmpge
+  47              	.LVL0:
+  48 0010 0028     		cmp	r0, #0
+  49 0012 18D0     		beq	.L2
+  50              	.LBB2:
+  89:main.c        ****     {
+  90:main.c        ****         int dimAmount = 8323.33*(1.25-value);
+  51              		.loc 1 90 0
+  52 0014 0D4B     		ldr	r3, .L5
+  53 0016 1A68     		ldr	r2, [r3]
+  54 0018 5B68     		ldr	r3, [r3, #4]
+  55 001a 0020     		movs	r0, #0
+  56 001c 0E49     		ldr	r1, .L5+12
+  57 001e FFF7FEFF 		bl	__aeabi_dsub
+  58              	.LVL1:
+  59 0022 0E4A     		ldr	r2, .L5+16
+  60 0024 0E4B     		ldr	r3, .L5+20
+  61 0026 FFF7FEFF 		bl	__aeabi_dmul
+  62              	.LVL2:
+  63 002a FFF7FEFF 		bl	__aeabi_d2iz
+  64              	.LVL3:
+  91:main.c        ****         CyDelayUs(dimAmount);
+  65              		.loc 1 91 0
+  66 002e 80B2     		uxth	r0, r0
+  67              	.LVL4:
+  68 0030 FFF7FEFF 		bl	CyDelayUs
+  69              	.LVL5:
+  92:main.c        ****         Pin_LC_Write(1u);
+  70              		.loc 1 92 0
+  71 0034 0120     		movs	r0, #1
+  72 0036 FFF7FEFF 		bl	Pin_LC_Write
+  73              	.LVL6:
+  93:main.c        ****         CyDelayUs(10);
+  74              		.loc 1 93 0
+  75 003a 0A20     		movs	r0, #10
+  76 003c FFF7FEFF 		bl	CyDelayUs
+  77              	.LVL7:
+  94:main.c        ****         Pin_LC_Write(0u);
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 4
+
+
+  78              		.loc 1 94 0
+  79 0040 0020     		movs	r0, #0
+  80 0042 FFF7FEFF 		bl	Pin_LC_Write
+  81              	.LVL8:
+  82              	.L2:
+  83              	.LBE2:
+  95:main.c        ****     }
+  96:main.c        ****     
+  97:main.c        ****     Pin_ZC_ClearInterrupt();
+  84              		.loc 1 97 0
+  85 0046 FFF7FEFF 		bl	Pin_ZC_ClearInterrupt
+  86              	.LVL9:
+  98:main.c        **** }
+  87              		.loc 1 98 0
+  88              		@ sp needed
+  89 004a 10BD     		pop	{r4, pc}
+  90              	.L6:
+  91              		.align	2
+  92              	.L5:
+  93 004c 00000000 		.word	value
+  94 0050 9A999999 		.word	-1717986918
+  95 0054 9999A93F 		.word	1068079513
+  96 0058 0000F43F 		.word	1072955392
+  97 005c D7A3703D 		.word	1030792151
+  98 0060 AA41C040 		.word	1086341546
+  99              		.cfi_endproc
+ 100              	.LFE33:
+ 101              		.size	Pin_ZC_Handler, .-Pin_ZC_Handler
+ 102              		.global	__aeabi_ui2d
+ 103              		.global	__aeabi_ddiv
+ 104              		.section	.text.main,"ax",%progbits
+ 105              		.align	2
+ 106              		.global	main
+ 107              		.code	16
+ 108              		.thumb_func
+ 109              		.type	main, %function
+ 110              	main:
+ 111              	.LFB34:
+  99:main.c        **** 
+ 100:main.c        **** int main()
+ 101:main.c        **** {	
+ 112              		.loc 1 101 0
+ 113              		.cfi_startproc
+ 114              		@ args = 0, pretend = 0, frame = 0
+ 115              		@ frame_needed = 0, uses_anonymous_args = 0
+ 116 0000 70B5     		push	{r4, r5, r6, lr}
+ 117              		.cfi_def_cfa_offset 16
+ 118              		.cfi_offset 4, -16
+ 119              		.cfi_offset 5, -12
+ 120              		.cfi_offset 6, -8
+ 121              		.cfi_offset 14, -4
+ 122              	.LVL10:
+ 102:main.c        ****     /* Variable to hold the current device state 
+ 103:main.c        ****     *  State machine starts with sensor scan state after power-up
+ 104:main.c        ****     */
+ 105:main.c        ****     DEVICE_STATE currentState = SENSOR_SCAN;  
+ 106:main.c        ****     
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 5
+
+
+ 107:main.c        ****     /* Enable global interrupts. */
+ 108:main.c        ****     CyGlobalIntEnable; 
+ 123              		.loc 1 108 0
+ 124              		.syntax divided
+ 125              	@ 108 "main.c" 1
+ 126 0002 62B6     		CPSIE   i
+ 127              	@ 0 "" 2
+ 109:main.c        ****         
+ 110:main.c        ****     /* Start CapSense block */
+ 111:main.c        ****     CapSense_Start();
+ 128              		.loc 1 111 0
+ 129              		.thumb
+ 130              		.syntax unified
+ 131 0004 FFF7FEFF 		bl	CapSense_Start
+ 132              	.LVL11:
+ 112:main.c        ****     
+ 113:main.c        ****     /* Start the light driver interrupt. */
+ 114:main.c        ****     Pin_ZC_Int_StartEx( Pin_ZC_Handler );
+ 133              		.loc 1 114 0
+ 134 0008 4A48     		ldr	r0, .L22
+ 135 000a FFF7FEFF 		bl	Pin_ZC_Int_StartEx
+ 136              	.LVL12:
+ 105:main.c        ****     
+ 137              		.loc 1 105 0
+ 138 000e 0124     		movs	r4, #1
+ 139 0010 00E0     		b	.L9
+ 140              	.LVL13:
+ 141              	.L21:
+ 142              	.LBB3:
+ 115:main.c        ****      			
+ 116:main.c        ****     for(;;)
+ 117:main.c        ****     {
+ 118:main.c        ****         /* Switch between SENSOR_SCAN->WAIT_FOR_SCAN_COMPLETE->PROCESS_DATA states */
+ 119:main.c        ****         switch(currentState)
+ 120:main.c        ****         {
+ 121:main.c        ****             case SENSOR_SCAN:
+ 122:main.c        **** 	            /* Initiate new scan only if the CapSense block is idle */
+ 123:main.c        ****                 if(CapSense_NOT_BUSY == CapSense_IsBusy())
+ 124:main.c        ****                 {
+ 125:main.c        ****                     /* Scan widget configured by CSDSetupWidget API */
+ 126:main.c        ****                     CapSense_ScanAllWidgets();
+ 127:main.c        ****                                         
+ 128:main.c        ****                     /* Set next state to WAIT_FOR_SCAN_COMPLETE  */
+ 129:main.c        ****                     currentState = WAIT_FOR_SCAN_COMPLETE;
+ 130:main.c        ****                 }
+ 131:main.c        ****                 break;
+ 132:main.c        **** 
+ 133:main.c        ****             case WAIT_FOR_SCAN_COMPLETE:
+ 134:main.c        ****                 /* Put the device to CPU Sleep until CapSense scanning is complete*/
+ 135:main.c        ****                 if(CapSense_NOT_BUSY != CapSense_IsBusy())
+ 136:main.c        ****                 {
+ 137:main.c        ****                     CySysPmSleep();
+ 138:main.c        ****                 }
+ 139:main.c        ****                 /* If CapSense scanning is complete, process the CapSense data */
+ 140:main.c        ****                 else
+ 141:main.c        ****                 {
+ 142:main.c        ****                     currentState = PROCESS_DATA;
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 6
+
+
+ 143              		.loc 1 142 0
+ 144 0012 0324     		movs	r4, #3
+ 145              	.LVL14:
+ 146              	.L9:
+ 147              	.LBE3:
+ 119:main.c        ****         {
+ 148              		.loc 1 119 0
+ 149 0014 022C     		cmp	r4, #2
+ 150 0016 0BD0     		beq	.L10
+ 151 0018 032C     		cmp	r4, #3
+ 152 001a 10D0     		beq	.L11
+ 153 001c 012C     		cmp	r4, #1
+ 154 001e F9D1     		bne	.L9
+ 155              	.LBB4:
+ 123:main.c        ****                 {
+ 156              		.loc 1 123 0
+ 157 0020 FFF7FEFF 		bl	CapSense_IsBusy
+ 158              	.LVL15:
+ 159 0024 0028     		cmp	r0, #0
+ 160 0026 F5D1     		bne	.L9
+ 126:main.c        ****                                         
+ 161              		.loc 1 126 0
+ 162 0028 FFF7FEFF 		bl	CapSense_ScanAllWidgets
+ 163              	.LVL16:
+ 129:main.c        ****                 }
+ 164              		.loc 1 129 0
+ 165 002c 0134     		adds	r4, r4, #1
+ 166 002e F1E7     		b	.L9
+ 167              	.LVL17:
+ 168              	.L10:
+ 135:main.c        ****                 {
+ 169              		.loc 1 135 0
+ 170 0030 FFF7FEFF 		bl	CapSense_IsBusy
+ 171              	.LVL18:
+ 172 0034 0028     		cmp	r0, #0
+ 173 0036 ECD0     		beq	.L21
+ 137:main.c        ****                 }
+ 174              		.loc 1 137 0
+ 175 0038 FFF7FEFF 		bl	CySysPmSleep
+ 176              	.LVL19:
+ 177 003c EAE7     		b	.L9
+ 178              	.L11:
+ 143:main.c        ****                 }
+ 144:main.c        ****                 break;
+ 145:main.c        ****         
+ 146:main.c        ****             case PROCESS_DATA:
+ 147:main.c        ****                 /* Process data on all the enabled widgets */
+ 148:main.c        ****                 CapSense_ProcessAllWidgets();
+ 179              		.loc 1 148 0
+ 180 003e FFF7FEFF 		bl	CapSense_ProcessAllWidgets
+ 181              	.LVL20:
+ 149:main.c        ****                 
+ 150:main.c        ****                 /* Get the touch position(centroid) of CapSense Linear Slider. */
+ 151:main.c        ****                 uint32 centroid = CapSense_GetCentroidPos(CapSense_SLD_WDGT_ID);
+ 182              		.loc 1 151 0
+ 183 0042 0320     		movs	r0, #3
+ 184 0044 FFF7FEFF 		bl	CapSense_GetCentroidPos
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 7
+
+
+ 185              	.LVL21:
+ 186 0048 0500     		movs	r5, r0
+ 187              	.LVL22:
+ 152:main.c        **** 
+ 153:main.c        ****                 /*Turn ON/OFF LEDs based on the finger position (centroid) on the CapSense Linear s
+ 154:main.c        ****                 if(CapSense_IsWidgetActive(CapSense_SLD_WDGT_ID))
+ 188              		.loc 1 154 0
+ 189 004a 0320     		movs	r0, #3
+ 190              	.LVL23:
+ 191 004c FFF7FEFF 		bl	CapSense_IsWidgetActive
+ 192              	.LVL24:
+ 193 0050 0028     		cmp	r0, #0
+ 194 0052 29D0     		beq	.L14
+ 155:main.c        ****                 {
+ 156:main.c        ****                     LED4_Write( ( (centroid > 0) || (centroid == 0)) ? LED_ON : LED_OFF );
+ 195              		.loc 1 156 0
+ 196 0054 0020     		movs	r0, #0
+ 197 0056 FFF7FEFF 		bl	LED4_Write
+ 198              	.LVL25:
+ 157:main.c        ****                     LED5_Write( ( centroid > ( 1 * STEP_SIZE ) ) ? LED_ON : LED_OFF );
+ 199              		.loc 1 157 0
+ 200 005a 0024     		movs	r4, #0
+ 201              	.LVL26:
+ 202 005c 1423     		movs	r3, #20
+ 203 005e 2000     		movs	r0, r4
+ 204 0060 AB42     		cmp	r3, r5
+ 205 0062 6041     		adcs	r0, r0, r4
+ 206 0064 C0B2     		uxtb	r0, r0
+ 207 0066 FFF7FEFF 		bl	LED5_Write
+ 208              	.LVL27:
+ 158:main.c        ****                     LED6_Write( ( centroid > ( 2 * STEP_SIZE ) ) ? LED_ON : LED_OFF );
+ 209              		.loc 1 158 0
+ 210 006a 2823     		movs	r3, #40
+ 211 006c 2000     		movs	r0, r4
+ 212 006e AB42     		cmp	r3, r5
+ 213 0070 6041     		adcs	r0, r0, r4
+ 214 0072 C0B2     		uxtb	r0, r0
+ 215 0074 FFF7FEFF 		bl	LED6_Write
+ 216              	.LVL28:
+ 159:main.c        ****                     LED7_Write( ( centroid > ( 3 * STEP_SIZE ) ) ? LED_ON : LED_OFF );
+ 217              		.loc 1 159 0
+ 218 0078 3C23     		movs	r3, #60
+ 219 007a 2000     		movs	r0, r4
+ 220 007c AB42     		cmp	r3, r5
+ 221 007e 6041     		adcs	r0, r0, r4
+ 222 0080 C0B2     		uxtb	r0, r0
+ 223 0082 FFF7FEFF 		bl	LED7_Write
+ 224              	.LVL29:
+ 160:main.c        ****                     LED8_Write( ( centroid > ( 4 * STEP_SIZE ) ) ? LED_ON : LED_OFF );
+ 225              		.loc 1 160 0
+ 226 0086 5023     		movs	r3, #80
+ 227 0088 AB42     		cmp	r3, r5
+ 228 008a 6441     		adcs	r4, r4, r4
+ 229 008c E0B2     		uxtb	r0, r4
+ 230 008e FFF7FEFF 		bl	LED8_Write
+ 231              	.LVL30:
+ 161:main.c        ****                     
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 8
+
+
+ 162:main.c        ****                     value = (double)centroid / (double)CapSense_SLD_X_RESOLUTION;
+ 232              		.loc 1 162 0
+ 233 0092 2800     		movs	r0, r5
+ 234 0094 FFF7FEFF 		bl	__aeabi_ui2d
+ 235              	.LVL31:
+ 236 0098 0022     		movs	r2, #0
+ 237 009a 274B     		ldr	r3, .L22+4
+ 238 009c FFF7FEFF 		bl	__aeabi_ddiv
+ 239              	.LVL32:
+ 240 00a0 264B     		ldr	r3, .L22+8
+ 241 00a2 1860     		str	r0, [r3]
+ 242 00a4 5960     		str	r1, [r3, #4]
+ 243 00a6 0EE0     		b	.L15
+ 244              	.LVL33:
+ 245              	.L14:
+ 163:main.c        ****                 }
+ 164:main.c        ****                 else
+ 165:main.c        ****                 {
+ 166:main.c        ****                     LED4_Write(LED_OFF);
+ 246              		.loc 1 166 0
+ 247 00a8 0120     		movs	r0, #1
+ 248 00aa FFF7FEFF 		bl	LED4_Write
+ 249              	.LVL34:
+ 167:main.c        ****                     LED5_Write(LED_OFF);
+ 250              		.loc 1 167 0
+ 251 00ae 0120     		movs	r0, #1
+ 252 00b0 FFF7FEFF 		bl	LED5_Write
+ 253              	.LVL35:
+ 168:main.c        ****                     LED6_Write(LED_OFF);
+ 254              		.loc 1 168 0
+ 255 00b4 0120     		movs	r0, #1
+ 256 00b6 FFF7FEFF 		bl	LED6_Write
+ 257              	.LVL36:
+ 169:main.c        ****                     LED7_Write(LED_OFF);
+ 258              		.loc 1 169 0
+ 259 00ba 0120     		movs	r0, #1
+ 260 00bc FFF7FEFF 		bl	LED7_Write
+ 261              	.LVL37:
+ 170:main.c        ****                     LED8_Write(LED_OFF);
+ 262              		.loc 1 170 0
+ 263 00c0 0120     		movs	r0, #1
+ 264 00c2 FFF7FEFF 		bl	LED8_Write
+ 265              	.LVL38:
+ 266              	.L15:
+ 171:main.c        ****                 }
+ 172:main.c        ****                
+ 173:main.c        ****                 /*Turn ON/OFF LEDs based on the status of the corresponding CapSense buttons*/
+ 174:main.c        ****                 if(CapSense_IsWidgetActive(CapSense_BTN0_WDGT_ID))
+ 267              		.loc 1 174 0
+ 268 00c6 0020     		movs	r0, #0
+ 269 00c8 FFF7FEFF 		bl	CapSense_IsWidgetActive
+ 270              	.LVL39:
+ 271 00cc 0028     		cmp	r0, #0
+ 272 00ce 08D0     		beq	.L16
+ 175:main.c        ****                 {
+ 176:main.c        ****                     LED9_Write(LED_ON);
+ 273              		.loc 1 176 0
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 9
+
+
+ 274 00d0 0020     		movs	r0, #0
+ 275 00d2 FFF7FEFF 		bl	LED9_Write
+ 276              	.LVL40:
+ 177:main.c        ****                     
+ 178:main.c        ****                     value = 1;
+ 277              		.loc 1 178 0
+ 278 00d6 0020     		movs	r0, #0
+ 279 00d8 1949     		ldr	r1, .L22+12
+ 280 00da 184B     		ldr	r3, .L22+8
+ 281 00dc 1860     		str	r0, [r3]
+ 282 00de 5960     		str	r1, [r3, #4]
+ 283 00e0 02E0     		b	.L17
+ 284              	.L16:
+ 179:main.c        ****                 }
+ 180:main.c        ****                 else
+ 181:main.c        ****                 {
+ 182:main.c        ****                     LED9_Write(LED_OFF);
+ 285              		.loc 1 182 0
+ 286 00e2 0120     		movs	r0, #1
+ 287 00e4 FFF7FEFF 		bl	LED9_Write
+ 288              	.LVL41:
+ 289              	.L17:
+ 183:main.c        ****                 }
+ 184:main.c        ****                 //LED9_Write(CapSense_IsWidgetActive(CapSense_BTN0_WDGT_ID) ? LED_ON : LED_OFF );
+ 185:main.c        ****                 if(CapSense_IsWidgetActive(CapSense_BTN1_WDGT_ID))
+ 290              		.loc 1 185 0
+ 291 00e8 0120     		movs	r0, #1
+ 292 00ea FFF7FEFF 		bl	CapSense_IsWidgetActive
+ 293              	.LVL42:
+ 294 00ee 0028     		cmp	r0, #0
+ 295 00f0 08D0     		beq	.L18
+ 186:main.c        ****                 {
+ 187:main.c        ****                     LED10_Write(LED_ON);
+ 296              		.loc 1 187 0
+ 297 00f2 0020     		movs	r0, #0
+ 298 00f4 FFF7FEFF 		bl	LED10_Write
+ 299              	.LVL43:
+ 188:main.c        ****                     
+ 189:main.c        ****                     value = 0.5;
+ 300              		.loc 1 189 0
+ 301 00f8 0020     		movs	r0, #0
+ 302 00fa 1249     		ldr	r1, .L22+16
+ 303 00fc 0F4B     		ldr	r3, .L22+8
+ 304 00fe 1860     		str	r0, [r3]
+ 305 0100 5960     		str	r1, [r3, #4]
+ 306 0102 02E0     		b	.L19
+ 307              	.L18:
+ 190:main.c        ****                 }
+ 191:main.c        ****                 else
+ 192:main.c        ****                 {
+ 193:main.c        ****                     LED10_Write(LED_OFF);
+ 308              		.loc 1 193 0
+ 309 0104 0120     		movs	r0, #1
+ 310 0106 FFF7FEFF 		bl	LED10_Write
+ 311              	.LVL44:
+ 312              	.L19:
+ 194:main.c        ****                 }
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 10
+
+
+ 195:main.c        ****                 //LED10_Write(CapSense_IsWidgetActive(CapSense_BTN1_WDGT_ID) ? LED_ON : LED_OFF );
+ 196:main.c        ****                 if(CapSense_IsWidgetActive(CapSense_BTN2_WDGT_ID))
+ 313              		.loc 1 196 0
+ 314 010a 0220     		movs	r0, #2
+ 315 010c FFF7FEFF 		bl	CapSense_IsWidgetActive
+ 316              	.LVL45:
+ 317 0110 0028     		cmp	r0, #0
+ 318 0112 09D0     		beq	.L20
+ 197:main.c        ****                 {
+ 198:main.c        ****                     LED11_Write(LED_ON);
+ 319              		.loc 1 198 0
+ 320 0114 0020     		movs	r0, #0
+ 321 0116 FFF7FEFF 		bl	LED11_Write
+ 322              	.LVL46:
+ 199:main.c        ****                     
+ 200:main.c        ****                     value = 0;
+ 323              		.loc 1 200 0
+ 324 011a 0020     		movs	r0, #0
+ 325 011c 0021     		movs	r1, #0
+ 326 011e 074B     		ldr	r3, .L22+8
+ 327 0120 1860     		str	r0, [r3]
+ 328 0122 5960     		str	r1, [r3, #4]
+ 201:main.c        ****                 }
+ 202:main.c        ****                 else
+ 203:main.c        ****                 {
+ 204:main.c        ****                     LED11_Write(LED_OFF);
+ 205:main.c        ****                 }
+ 206:main.c        ****                 //LED11_Write(CapSense_IsWidgetActive(CapSense_BTN2_WDGT_ID) ? LED_ON : LED_OFF );
+ 207:main.c        ****                 
+ 208:main.c        ****                 /* Set the device state to SENSOR_SCAN */
+ 209:main.c        ****                 currentState = SENSOR_SCAN;  
+ 329              		.loc 1 209 0
+ 330 0124 0124     		movs	r4, #1
+ 331 0126 75E7     		b	.L9
+ 332              	.L20:
+ 204:main.c        ****                 }
+ 333              		.loc 1 204 0
+ 334 0128 0120     		movs	r0, #1
+ 335 012a FFF7FEFF 		bl	LED11_Write
+ 336              	.LVL47:
+ 337              		.loc 1 209 0
+ 338 012e 0124     		movs	r4, #1
+ 339 0130 70E7     		b	.L9
+ 340              	.L23:
+ 341 0132 C046     		.align	2
+ 342              	.L22:
+ 343 0134 00000000 		.word	Pin_ZC_Handler
+ 344 0138 00005940 		.word	1079574528
+ 345 013c 00000000 		.word	value
+ 346 0140 0000F03F 		.word	1072693248
+ 347 0144 0000E03F 		.word	1071644672
+ 348              	.LBE4:
+ 349              		.cfi_endproc
+ 350              	.LFE34:
+ 351              		.size	main, .-main
+ 352              		.comm	value,8,8
+ 353              		.text
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 11
+
+
+ 354              	.Letext0:
+ 355              		.file 2 "Generated_Source\\PSoC4/cytypes.h"
+ 356              		.file 3 "Generated_Source\\PSoC4/CyLib.h"
+ 357              		.file 4 "Generated_Source\\PSoC4/Pin_LC.h"
+ 358              		.file 5 "Generated_Source\\PSoC4/Pin_ZC.h"
+ 359              		.file 6 "Generated_Source\\PSoC4/CapSense_Sensing.h"
+ 360              		.file 7 "Generated_Source\\PSoC4/cyPm.h"
+ 361              		.file 8 "Generated_Source\\PSoC4/CapSense_Control.h"
+ 362              		.file 9 "Generated_Source\\PSoC4/CapSense_Structure.h"
+ 363              		.file 10 "Generated_Source\\PSoC4/LED4.h"
+ 364              		.file 11 "Generated_Source\\PSoC4/LED5.h"
+ 365              		.file 12 "Generated_Source\\PSoC4/LED6.h"
+ 366              		.file 13 "Generated_Source\\PSoC4/LED7.h"
+ 367              		.file 14 "Generated_Source\\PSoC4/LED8.h"
+ 368              		.file 15 "Generated_Source\\PSoC4/LED9.h"
+ 369              		.file 16 "Generated_Source\\PSoC4/LED10.h"
+ 370              		.file 17 "Generated_Source\\PSoC4/LED11.h"
+ 371              		.file 18 "Generated_Source\\PSoC4/Pin_ZC_Int.h"
+ 372              		.section	.debug_info,"",%progbits
+ 373              	.Ldebug_info0:
+ 374 0000 79040000 		.4byte	0x479
+ 375 0004 0400     		.2byte	0x4
+ 376 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 377 000a 04       		.byte	0x4
+ 378 000b 01       		.uleb128 0x1
+ 379 000c 8E020000 		.4byte	.LASF42
+ 380 0010 0C       		.byte	0xc
+ 381 0011 42020000 		.4byte	.LASF43
+ 382 0015 0E010000 		.4byte	.LASF44
+ 383 0019 18000000 		.4byte	.Ldebug_ranges0+0x18
+ 384 001d 00000000 		.4byte	0
+ 385 0021 00000000 		.4byte	.Ldebug_line0
+ 386 0025 02       		.uleb128 0x2
+ 387 0026 01       		.byte	0x1
+ 388 0027 06       		.byte	0x6
+ 389 0028 20030000 		.4byte	.LASF0
+ 390 002c 02       		.uleb128 0x2
+ 391 002d 01       		.byte	0x1
+ 392 002e 08       		.byte	0x8
+ 393 002f EE000000 		.4byte	.LASF1
+ 394 0033 02       		.uleb128 0x2
+ 395 0034 02       		.byte	0x2
+ 396 0035 05       		.byte	0x5
+ 397 0036 68020000 		.4byte	.LASF2
+ 398 003a 02       		.uleb128 0x2
+ 399 003b 02       		.byte	0x2
+ 400 003c 07       		.byte	0x7
+ 401 003d C3000000 		.4byte	.LASF3
+ 402 0041 02       		.uleb128 0x2
+ 403 0042 04       		.byte	0x4
+ 404 0043 05       		.byte	0x5
+ 405 0044 78020000 		.4byte	.LASF4
+ 406 0048 02       		.uleb128 0x2
+ 407 0049 04       		.byte	0x4
+ 408 004a 07       		.byte	0x7
+ 409 004b FC000000 		.4byte	.LASF5
+ 410 004f 02       		.uleb128 0x2
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 12
+
+
+ 411 0050 08       		.byte	0x8
+ 412 0051 05       		.byte	0x5
+ 413 0052 34020000 		.4byte	.LASF6
+ 414 0056 02       		.uleb128 0x2
+ 415 0057 08       		.byte	0x8
+ 416 0058 07       		.byte	0x7
+ 417 0059 D9010000 		.4byte	.LASF7
+ 418 005d 03       		.uleb128 0x3
+ 419 005e 04       		.byte	0x4
+ 420 005f 05       		.byte	0x5
+ 421 0060 696E7400 		.ascii	"int\000"
+ 422 0064 02       		.uleb128 0x2
+ 423 0065 04       		.byte	0x4
+ 424 0066 07       		.byte	0x7
+ 425 0067 B5010000 		.4byte	.LASF8
+ 426 006b 04       		.uleb128 0x4
+ 427 006c 72020000 		.4byte	.LASF9
+ 428 0070 02       		.byte	0x2
+ 429 0071 E401     		.2byte	0x1e4
+ 430 0073 2C000000 		.4byte	0x2c
+ 431 0077 04       		.uleb128 0x4
+ 432 0078 A2010000 		.4byte	.LASF10
+ 433 007c 02       		.byte	0x2
+ 434 007d E601     		.2byte	0x1e6
+ 435 007f 48000000 		.4byte	0x48
+ 436 0083 02       		.uleb128 0x2
+ 437 0084 04       		.byte	0x4
+ 438 0085 04       		.byte	0x4
+ 439 0086 6A000000 		.4byte	.LASF11
+ 440 008a 02       		.uleb128 0x2
+ 441 008b 08       		.byte	0x8
+ 442 008c 04       		.byte	0x4
+ 443 008d 63000000 		.4byte	.LASF12
+ 444 0091 02       		.uleb128 0x2
+ 445 0092 01       		.byte	0x1
+ 446 0093 08       		.byte	0x8
+ 447 0094 49020000 		.4byte	.LASF13
+ 448 0098 02       		.uleb128 0x2
+ 449 0099 08       		.byte	0x8
+ 450 009a 04       		.byte	0x4
+ 451 009b 7C010000 		.4byte	.LASF14
+ 452 009f 02       		.uleb128 0x2
+ 453 00a0 04       		.byte	0x4
+ 454 00a1 07       		.byte	0x7
+ 455 00a2 2B020000 		.4byte	.LASF15
+ 456 00a6 05       		.uleb128 0x5
+ 457 00a7 01       		.byte	0x1
+ 458 00a8 2C000000 		.4byte	0x2c
+ 459 00ac 01       		.byte	0x1
+ 460 00ad 46       		.byte	0x46
+ 461 00ae C5000000 		.4byte	0xc5
+ 462 00b2 06       		.uleb128 0x6
+ 463 00b3 C2010000 		.4byte	.LASF16
+ 464 00b7 01       		.byte	0x1
+ 465 00b8 06       		.uleb128 0x6
+ 466 00b9 2C030000 		.4byte	.LASF17
+ 467 00bd 02       		.byte	0x2
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 13
+
+
+ 468 00be 06       		.uleb128 0x6
+ 469 00bf 81020000 		.4byte	.LASF18
+ 470 00c3 03       		.byte	0x3
+ 471 00c4 00       		.byte	0
+ 472 00c5 07       		.uleb128 0x7
+ 473 00c6 E1000000 		.4byte	.LASF19
+ 474 00ca 01       		.byte	0x1
+ 475 00cb 4A       		.byte	0x4a
+ 476 00cc A6000000 		.4byte	0xa6
+ 477 00d0 08       		.uleb128 0x8
+ 478 00d1 4E020000 		.4byte	.LASF45
+ 479 00d5 01       		.byte	0x1
+ 480 00d6 52       		.byte	0x52
+ 481 00d7 00000000 		.4byte	.LFB33
+ 482 00db 64000000 		.4byte	.LFE33-.LFB33
+ 483 00df 01       		.uleb128 0x1
+ 484 00e0 9C       		.byte	0x9c
+ 485 00e1 4A010000 		.4byte	0x14a
+ 486 00e5 09       		.uleb128 0x9
+ 487 00e6 14000000 		.4byte	.LBB2
+ 488 00ea 32000000 		.4byte	.LBE2-.LBB2
+ 489 00ee 40010000 		.4byte	0x140
+ 490 00f2 0A       		.uleb128 0xa
+ 491 00f3 2B000000 		.4byte	.LASF20
+ 492 00f7 01       		.byte	0x1
+ 493 00f8 5A       		.byte	0x5a
+ 494 00f9 5D000000 		.4byte	0x5d
+ 495 00fd 00000000 		.4byte	.LLST0
+ 496 0101 0B       		.uleb128 0xb
+ 497 0102 34000000 		.4byte	.LVL5
+ 498 0106 A9030000 		.4byte	0x3a9
+ 499 010a 0C       		.uleb128 0xc
+ 500 010b 3A000000 		.4byte	.LVL6
+ 501 010f B4030000 		.4byte	0x3b4
+ 502 0113 1D010000 		.4byte	0x11d
+ 503 0117 0D       		.uleb128 0xd
+ 504 0118 01       		.uleb128 0x1
+ 505 0119 50       		.byte	0x50
+ 506 011a 01       		.uleb128 0x1
+ 507 011b 31       		.byte	0x31
+ 508 011c 00       		.byte	0
+ 509 011d 0C       		.uleb128 0xc
+ 510 011e 40000000 		.4byte	.LVL7
+ 511 0122 A9030000 		.4byte	0x3a9
+ 512 0126 30010000 		.4byte	0x130
+ 513 012a 0D       		.uleb128 0xd
+ 514 012b 01       		.uleb128 0x1
+ 515 012c 50       		.byte	0x50
+ 516 012d 01       		.uleb128 0x1
+ 517 012e 3A       		.byte	0x3a
+ 518 012f 00       		.byte	0
+ 519 0130 0E       		.uleb128 0xe
+ 520 0131 46000000 		.4byte	.LVL8
+ 521 0135 B4030000 		.4byte	0x3b4
+ 522 0139 0D       		.uleb128 0xd
+ 523 013a 01       		.uleb128 0x1
+ 524 013b 50       		.byte	0x50
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 14
+
+
+ 525 013c 01       		.uleb128 0x1
+ 526 013d 30       		.byte	0x30
+ 527 013e 00       		.byte	0
+ 528 013f 00       		.byte	0
+ 529 0140 0B       		.uleb128 0xb
+ 530 0141 4A000000 		.4byte	.LVL9
+ 531 0145 BF030000 		.4byte	0x3bf
+ 532 0149 00       		.byte	0
+ 533 014a 0F       		.uleb128 0xf
+ 534 014b 88010000 		.4byte	.LASF46
+ 535 014f 01       		.byte	0x1
+ 536 0150 64       		.byte	0x64
+ 537 0151 5D000000 		.4byte	0x5d
+ 538 0155 00000000 		.4byte	.LFB34
+ 539 0159 48010000 		.4byte	.LFE34-.LFB34
+ 540 015d 01       		.uleb128 0x1
+ 541 015e 9C       		.byte	0x9c
+ 542 015f 93030000 		.4byte	0x393
+ 543 0163 0A       		.uleb128 0xa
+ 544 0164 52030000 		.4byte	.LASF21
+ 545 0168 01       		.byte	0x1
+ 546 0169 69       		.byte	0x69
+ 547 016a C5000000 		.4byte	0xc5
+ 548 016e 13000000 		.4byte	.LLST1
+ 549 0172 10       		.uleb128 0x10
+ 550 0173 00000000 		.4byte	.Ldebug_ranges0+0
+ 551 0177 76030000 		.4byte	0x376
+ 552 017b 0A       		.uleb128 0xa
+ 553 017c 17020000 		.4byte	.LASF22
+ 554 0180 01       		.byte	0x1
+ 555 0181 97       		.byte	0x97
+ 556 0182 77000000 		.4byte	0x77
+ 557 0186 54000000 		.4byte	.LLST2
+ 558 018a 0B       		.uleb128 0xb
+ 559 018b 24000000 		.4byte	.LVL15
+ 560 018f CA030000 		.4byte	0x3ca
+ 561 0193 0B       		.uleb128 0xb
+ 562 0194 2C000000 		.4byte	.LVL16
+ 563 0198 D5030000 		.4byte	0x3d5
+ 564 019c 0B       		.uleb128 0xb
+ 565 019d 34000000 		.4byte	.LVL18
+ 566 01a1 CA030000 		.4byte	0x3ca
+ 567 01a5 0B       		.uleb128 0xb
+ 568 01a6 3C000000 		.4byte	.LVL19
+ 569 01aa E0030000 		.4byte	0x3e0
+ 570 01ae 0B       		.uleb128 0xb
+ 571 01af 42000000 		.4byte	.LVL20
+ 572 01b3 EB030000 		.4byte	0x3eb
+ 573 01b7 0C       		.uleb128 0xc
+ 574 01b8 48000000 		.4byte	.LVL21
+ 575 01bc F6030000 		.4byte	0x3f6
+ 576 01c0 CA010000 		.4byte	0x1ca
+ 577 01c4 0D       		.uleb128 0xd
+ 578 01c5 01       		.uleb128 0x1
+ 579 01c6 50       		.byte	0x50
+ 580 01c7 01       		.uleb128 0x1
+ 581 01c8 33       		.byte	0x33
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 15
+
+
+ 582 01c9 00       		.byte	0
+ 583 01ca 0C       		.uleb128 0xc
+ 584 01cb 50000000 		.4byte	.LVL24
+ 585 01cf 02040000 		.4byte	0x402
+ 586 01d3 DD010000 		.4byte	0x1dd
+ 587 01d7 0D       		.uleb128 0xd
+ 588 01d8 01       		.uleb128 0x1
+ 589 01d9 50       		.byte	0x50
+ 590 01da 01       		.uleb128 0x1
+ 591 01db 33       		.byte	0x33
+ 592 01dc 00       		.byte	0
+ 593 01dd 0C       		.uleb128 0xc
+ 594 01de 5A000000 		.4byte	.LVL25
+ 595 01e2 0E040000 		.4byte	0x40e
+ 596 01e6 F0010000 		.4byte	0x1f0
+ 597 01ea 0D       		.uleb128 0xd
+ 598 01eb 01       		.uleb128 0x1
+ 599 01ec 50       		.byte	0x50
+ 600 01ed 01       		.uleb128 0x1
+ 601 01ee 30       		.byte	0x30
+ 602 01ef 00       		.byte	0
+ 603 01f0 0C       		.uleb128 0xc
+ 604 01f1 6A000000 		.4byte	.LVL27
+ 605 01f5 19040000 		.4byte	0x419
+ 606 01f9 13020000 		.4byte	0x213
+ 607 01fd 0D       		.uleb128 0xd
+ 608 01fe 01       		.uleb128 0x1
+ 609 01ff 50       		.byte	0x50
+ 610 0200 11       		.uleb128 0x11
+ 611 0201 74       		.byte	0x74
+ 612 0202 00       		.sleb128 0
+ 613 0203 31       		.byte	0x31
+ 614 0204 24       		.byte	0x24
+ 615 0205 44       		.byte	0x44
+ 616 0206 40       		.byte	0x40
+ 617 0207 4B       		.byte	0x4b
+ 618 0208 24       		.byte	0x24
+ 619 0209 22       		.byte	0x22
+ 620 020a 75       		.byte	0x75
+ 621 020b 00       		.sleb128 0
+ 622 020c 40       		.byte	0x40
+ 623 020d 4B       		.byte	0x4b
+ 624 020e 24       		.byte	0x24
+ 625 020f 22       		.byte	0x22
+ 626 0210 2A       		.byte	0x2a
+ 627 0211 22       		.byte	0x22
+ 628 0212 00       		.byte	0
+ 629 0213 0C       		.uleb128 0xc
+ 630 0214 78000000 		.4byte	.LVL28
+ 631 0218 24040000 		.4byte	0x424
+ 632 021c 37020000 		.4byte	0x237
+ 633 0220 0D       		.uleb128 0xd
+ 634 0221 01       		.uleb128 0x1
+ 635 0222 50       		.byte	0x50
+ 636 0223 12       		.uleb128 0x12
+ 637 0224 74       		.byte	0x74
+ 638 0225 00       		.sleb128 0
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 16
+
+
+ 639 0226 31       		.byte	0x31
+ 640 0227 24       		.byte	0x24
+ 641 0228 08       		.byte	0x8
+ 642 0229 28       		.byte	0x28
+ 643 022a 40       		.byte	0x40
+ 644 022b 4B       		.byte	0x4b
+ 645 022c 24       		.byte	0x24
+ 646 022d 22       		.byte	0x22
+ 647 022e 75       		.byte	0x75
+ 648 022f 00       		.sleb128 0
+ 649 0230 40       		.byte	0x40
+ 650 0231 4B       		.byte	0x4b
+ 651 0232 24       		.byte	0x24
+ 652 0233 22       		.byte	0x22
+ 653 0234 2A       		.byte	0x2a
+ 654 0235 22       		.byte	0x22
+ 655 0236 00       		.byte	0
+ 656 0237 0C       		.uleb128 0xc
+ 657 0238 86000000 		.4byte	.LVL29
+ 658 023c 2F040000 		.4byte	0x42f
+ 659 0240 5B020000 		.4byte	0x25b
+ 660 0244 0D       		.uleb128 0xd
+ 661 0245 01       		.uleb128 0x1
+ 662 0246 50       		.byte	0x50
+ 663 0247 12       		.uleb128 0x12
+ 664 0248 74       		.byte	0x74
+ 665 0249 00       		.sleb128 0
+ 666 024a 31       		.byte	0x31
+ 667 024b 24       		.byte	0x24
+ 668 024c 08       		.byte	0x8
+ 669 024d 3C       		.byte	0x3c
+ 670 024e 40       		.byte	0x40
+ 671 024f 4B       		.byte	0x4b
+ 672 0250 24       		.byte	0x24
+ 673 0251 22       		.byte	0x22
+ 674 0252 75       		.byte	0x75
+ 675 0253 00       		.sleb128 0
+ 676 0254 40       		.byte	0x40
+ 677 0255 4B       		.byte	0x4b
+ 678 0256 24       		.byte	0x24
+ 679 0257 22       		.byte	0x22
+ 680 0258 2A       		.byte	0x2a
+ 681 0259 22       		.byte	0x22
+ 682 025a 00       		.byte	0
+ 683 025b 0C       		.uleb128 0xc
+ 684 025c 92000000 		.4byte	.LVL30
+ 685 0260 3A040000 		.4byte	0x43a
+ 686 0264 6F020000 		.4byte	0x26f
+ 687 0268 0D       		.uleb128 0xd
+ 688 0269 01       		.uleb128 0x1
+ 689 026a 50       		.byte	0x50
+ 690 026b 02       		.uleb128 0x2
+ 691 026c 74       		.byte	0x74
+ 692 026d 00       		.sleb128 0
+ 693 026e 00       		.byte	0
+ 694 026f 0C       		.uleb128 0xc
+ 695 0270 AE000000 		.4byte	.LVL34
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 17
+
+
+ 696 0274 0E040000 		.4byte	0x40e
+ 697 0278 82020000 		.4byte	0x282
+ 698 027c 0D       		.uleb128 0xd
+ 699 027d 01       		.uleb128 0x1
+ 700 027e 50       		.byte	0x50
+ 701 027f 01       		.uleb128 0x1
+ 702 0280 31       		.byte	0x31
+ 703 0281 00       		.byte	0
+ 704 0282 0C       		.uleb128 0xc
+ 705 0283 B4000000 		.4byte	.LVL35
+ 706 0287 19040000 		.4byte	0x419
+ 707 028b 95020000 		.4byte	0x295
+ 708 028f 0D       		.uleb128 0xd
+ 709 0290 01       		.uleb128 0x1
+ 710 0291 50       		.byte	0x50
+ 711 0292 01       		.uleb128 0x1
+ 712 0293 31       		.byte	0x31
+ 713 0294 00       		.byte	0
+ 714 0295 0C       		.uleb128 0xc
+ 715 0296 BA000000 		.4byte	.LVL36
+ 716 029a 24040000 		.4byte	0x424
+ 717 029e A8020000 		.4byte	0x2a8
+ 718 02a2 0D       		.uleb128 0xd
+ 719 02a3 01       		.uleb128 0x1
+ 720 02a4 50       		.byte	0x50
+ 721 02a5 01       		.uleb128 0x1
+ 722 02a6 31       		.byte	0x31
+ 723 02a7 00       		.byte	0
+ 724 02a8 0C       		.uleb128 0xc
+ 725 02a9 C0000000 		.4byte	.LVL37
+ 726 02ad 2F040000 		.4byte	0x42f
+ 727 02b1 BB020000 		.4byte	0x2bb
+ 728 02b5 0D       		.uleb128 0xd
+ 729 02b6 01       		.uleb128 0x1
+ 730 02b7 50       		.byte	0x50
+ 731 02b8 01       		.uleb128 0x1
+ 732 02b9 31       		.byte	0x31
+ 733 02ba 00       		.byte	0
+ 734 02bb 0C       		.uleb128 0xc
+ 735 02bc C6000000 		.4byte	.LVL38
+ 736 02c0 3A040000 		.4byte	0x43a
+ 737 02c4 CE020000 		.4byte	0x2ce
+ 738 02c8 0D       		.uleb128 0xd
+ 739 02c9 01       		.uleb128 0x1
+ 740 02ca 50       		.byte	0x50
+ 741 02cb 01       		.uleb128 0x1
+ 742 02cc 31       		.byte	0x31
+ 743 02cd 00       		.byte	0
+ 744 02ce 0C       		.uleb128 0xc
+ 745 02cf CC000000 		.4byte	.LVL39
+ 746 02d3 02040000 		.4byte	0x402
+ 747 02d7 E1020000 		.4byte	0x2e1
+ 748 02db 0D       		.uleb128 0xd
+ 749 02dc 01       		.uleb128 0x1
+ 750 02dd 50       		.byte	0x50
+ 751 02de 01       		.uleb128 0x1
+ 752 02df 30       		.byte	0x30
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 18
+
+
+ 753 02e0 00       		.byte	0
+ 754 02e1 0C       		.uleb128 0xc
+ 755 02e2 D6000000 		.4byte	.LVL40
+ 756 02e6 45040000 		.4byte	0x445
+ 757 02ea F4020000 		.4byte	0x2f4
+ 758 02ee 0D       		.uleb128 0xd
+ 759 02ef 01       		.uleb128 0x1
+ 760 02f0 50       		.byte	0x50
+ 761 02f1 01       		.uleb128 0x1
+ 762 02f2 30       		.byte	0x30
+ 763 02f3 00       		.byte	0
+ 764 02f4 0C       		.uleb128 0xc
+ 765 02f5 E8000000 		.4byte	.LVL41
+ 766 02f9 45040000 		.4byte	0x445
+ 767 02fd 07030000 		.4byte	0x307
+ 768 0301 0D       		.uleb128 0xd
+ 769 0302 01       		.uleb128 0x1
+ 770 0303 50       		.byte	0x50
+ 771 0304 01       		.uleb128 0x1
+ 772 0305 31       		.byte	0x31
+ 773 0306 00       		.byte	0
+ 774 0307 0C       		.uleb128 0xc
+ 775 0308 EE000000 		.4byte	.LVL42
+ 776 030c 02040000 		.4byte	0x402
+ 777 0310 1A030000 		.4byte	0x31a
+ 778 0314 0D       		.uleb128 0xd
+ 779 0315 01       		.uleb128 0x1
+ 780 0316 50       		.byte	0x50
+ 781 0317 01       		.uleb128 0x1
+ 782 0318 31       		.byte	0x31
+ 783 0319 00       		.byte	0
+ 784 031a 0C       		.uleb128 0xc
+ 785 031b F8000000 		.4byte	.LVL43
+ 786 031f 50040000 		.4byte	0x450
+ 787 0323 2D030000 		.4byte	0x32d
+ 788 0327 0D       		.uleb128 0xd
+ 789 0328 01       		.uleb128 0x1
+ 790 0329 50       		.byte	0x50
+ 791 032a 01       		.uleb128 0x1
+ 792 032b 30       		.byte	0x30
+ 793 032c 00       		.byte	0
+ 794 032d 0C       		.uleb128 0xc
+ 795 032e 0A010000 		.4byte	.LVL44
+ 796 0332 50040000 		.4byte	0x450
+ 797 0336 40030000 		.4byte	0x340
+ 798 033a 0D       		.uleb128 0xd
+ 799 033b 01       		.uleb128 0x1
+ 800 033c 50       		.byte	0x50
+ 801 033d 01       		.uleb128 0x1
+ 802 033e 31       		.byte	0x31
+ 803 033f 00       		.byte	0
+ 804 0340 0C       		.uleb128 0xc
+ 805 0341 10010000 		.4byte	.LVL45
+ 806 0345 02040000 		.4byte	0x402
+ 807 0349 53030000 		.4byte	0x353
+ 808 034d 0D       		.uleb128 0xd
+ 809 034e 01       		.uleb128 0x1
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 19
+
+
+ 810 034f 50       		.byte	0x50
+ 811 0350 01       		.uleb128 0x1
+ 812 0351 32       		.byte	0x32
+ 813 0352 00       		.byte	0
+ 814 0353 0C       		.uleb128 0xc
+ 815 0354 1A010000 		.4byte	.LVL46
+ 816 0358 5B040000 		.4byte	0x45b
+ 817 035c 66030000 		.4byte	0x366
+ 818 0360 0D       		.uleb128 0xd
+ 819 0361 01       		.uleb128 0x1
+ 820 0362 50       		.byte	0x50
+ 821 0363 01       		.uleb128 0x1
+ 822 0364 30       		.byte	0x30
+ 823 0365 00       		.byte	0
+ 824 0366 0E       		.uleb128 0xe
+ 825 0367 2E010000 		.4byte	.LVL47
+ 826 036b 5B040000 		.4byte	0x45b
+ 827 036f 0D       		.uleb128 0xd
+ 828 0370 01       		.uleb128 0x1
+ 829 0371 50       		.byte	0x50
+ 830 0372 01       		.uleb128 0x1
+ 831 0373 31       		.byte	0x31
+ 832 0374 00       		.byte	0
+ 833 0375 00       		.byte	0
+ 834 0376 0B       		.uleb128 0xb
+ 835 0377 08000000 		.4byte	.LVL11
+ 836 037b 66040000 		.4byte	0x466
+ 837 037f 0E       		.uleb128 0xe
+ 838 0380 0E000000 		.4byte	.LVL12
+ 839 0384 71040000 		.4byte	0x471
+ 840 0388 0D       		.uleb128 0xd
+ 841 0389 01       		.uleb128 0x1
+ 842 038a 50       		.byte	0x50
+ 843 038b 05       		.uleb128 0x5
+ 844 038c 03       		.byte	0x3
+ 845 038d 00000000 		.4byte	Pin_ZC_Handler
+ 846 0391 00       		.byte	0
+ 847 0392 00       		.byte	0
+ 848 0393 11       		.uleb128 0x11
+ 849 0394 25000000 		.4byte	.LASF47
+ 850 0398 01       		.byte	0x1
+ 851 0399 50       		.byte	0x50
+ 852 039a A4030000 		.4byte	0x3a4
+ 853 039e 05       		.uleb128 0x5
+ 854 039f 03       		.byte	0x3
+ 855 03a0 00000000 		.4byte	value
+ 856 03a4 12       		.uleb128 0x12
+ 857 03a5 8A000000 		.4byte	0x8a
+ 858 03a9 13       		.uleb128 0x13
+ 859 03aa 98010000 		.4byte	.LASF23
+ 860 03ae 98010000 		.4byte	.LASF23
+ 861 03b2 03       		.byte	0x3
+ 862 03b3 DA       		.byte	0xda
+ 863 03b4 13       		.uleb128 0x13
+ 864 03b5 70000000 		.4byte	.LASF24
+ 865 03b9 70000000 		.4byte	.LASF24
+ 866 03bd 04       		.byte	0x4
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 20
+
+
+ 867 03be 33       		.byte	0x33
+ 868 03bf 13       		.uleb128 0x13
+ 869 03c0 4D000000 		.4byte	.LASF25
+ 870 03c4 4D000000 		.4byte	.LASF25
+ 871 03c8 05       		.byte	0x5
+ 872 03c9 39       		.byte	0x39
+ 873 03ca 13       		.uleb128 0x13
+ 874 03cb A0000000 		.4byte	.LASF26
+ 875 03cf A0000000 		.4byte	.LASF26
+ 876 03d3 06       		.byte	0x6
+ 877 03d4 4C       		.byte	0x4c
+ 878 03d5 13       		.uleb128 0x13
+ 879 03d6 7D000000 		.4byte	.LASF27
+ 880 03da 7D000000 		.4byte	.LASF27
+ 881 03de 06       		.byte	0x6
+ 882 03df 4B       		.byte	0x4b
+ 883 03e0 13       		.uleb128 0x13
+ 884 03e1 18000000 		.4byte	.LASF28
+ 885 03e5 18000000 		.4byte	.LASF28
+ 886 03e9 07       		.byte	0x7
+ 887 03ea 56       		.byte	0x56
+ 888 03eb 13       		.uleb128 0x13
+ 889 03ec F0010000 		.4byte	.LASF29
+ 890 03f0 F0010000 		.4byte	.LASF29
+ 891 03f4 08       		.byte	0x8
+ 892 03f5 3F       		.byte	0x3f
+ 893 03f6 14       		.uleb128 0x14
+ 894 03f7 00000000 		.4byte	.LASF30
+ 895 03fb 00000000 		.4byte	.LASF30
+ 896 03ff 09       		.byte	0x9
+ 897 0400 DD04     		.2byte	0x4dd
+ 898 0402 14       		.uleb128 0x14
+ 899 0403 35000000 		.4byte	.LASF31
+ 900 0407 35000000 		.4byte	.LASF31
+ 901 040b 09       		.byte	0x9
+ 902 040c CB04     		.2byte	0x4cb
+ 903 040e 13       		.uleb128 0x13
+ 904 040f 95000000 		.4byte	.LASF32
+ 905 0413 95000000 		.4byte	.LASF32
+ 906 0417 0A       		.byte	0xa
+ 907 0418 33       		.byte	0x33
+ 908 0419 13       		.uleb128 0x13
+ 909 041a D6000000 		.4byte	.LASF33
+ 910 041e D6000000 		.4byte	.LASF33
+ 911 0422 0B       		.byte	0xb
+ 912 0423 33       		.byte	0x33
+ 913 0424 13       		.uleb128 0x13
+ 914 0425 8D010000 		.4byte	.LASF34
+ 915 0429 8D010000 		.4byte	.LASF34
+ 916 042d 0C       		.byte	0xc
+ 917 042e 33       		.byte	0x33
+ 918 042f 13       		.uleb128 0x13
+ 919 0430 CE010000 		.4byte	.LASF35
+ 920 0434 CE010000 		.4byte	.LASF35
+ 921 0438 0D       		.byte	0xd
+ 922 0439 33       		.byte	0x33
+ 923 043a 13       		.uleb128 0x13
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 21
+
+
+ 924 043b 20020000 		.4byte	.LASF36
+ 925 043f 20020000 		.4byte	.LASF36
+ 926 0443 0E       		.byte	0xe
+ 927 0444 33       		.byte	0x33
+ 928 0445 13       		.uleb128 0x13
+ 929 0446 5D020000 		.4byte	.LASF37
+ 930 044a 5D020000 		.4byte	.LASF37
+ 931 044e 0F       		.byte	0xf
+ 932 044f 33       		.byte	0x33
+ 933 0450 13       		.uleb128 0x13
+ 934 0451 A9010000 		.4byte	.LASF38
+ 935 0455 A9010000 		.4byte	.LASF38
+ 936 0459 10       		.byte	0x10
+ 937 045a 33       		.byte	0x33
+ 938 045b 13       		.uleb128 0x13
+ 939 045c 0B020000 		.4byte	.LASF39
+ 940 0460 0B020000 		.4byte	.LASF39
+ 941 0464 11       		.byte	0x11
+ 942 0465 33       		.byte	0x33
+ 943 0466 13       		.uleb128 0x13
+ 944 0467 43030000 		.4byte	.LASF40
+ 945 046b 43030000 		.4byte	.LASF40
+ 946 046f 08       		.byte	0x8
+ 947 0470 3B       		.byte	0x3b
+ 948 0471 13       		.uleb128 0x13
+ 949 0472 B0000000 		.4byte	.LASF41
+ 950 0476 B0000000 		.4byte	.LASF41
+ 951 047a 12       		.byte	0x12
+ 952 047b 18       		.byte	0x18
+ 953 047c 00       		.byte	0
+ 954              		.section	.debug_abbrev,"",%progbits
+ 955              	.Ldebug_abbrev0:
+ 956 0000 01       		.uleb128 0x1
+ 957 0001 11       		.uleb128 0x11
+ 958 0002 01       		.byte	0x1
+ 959 0003 25       		.uleb128 0x25
+ 960 0004 0E       		.uleb128 0xe
+ 961 0005 13       		.uleb128 0x13
+ 962 0006 0B       		.uleb128 0xb
+ 963 0007 03       		.uleb128 0x3
+ 964 0008 0E       		.uleb128 0xe
+ 965 0009 1B       		.uleb128 0x1b
+ 966 000a 0E       		.uleb128 0xe
+ 967 000b 55       		.uleb128 0x55
+ 968 000c 17       		.uleb128 0x17
+ 969 000d 11       		.uleb128 0x11
+ 970 000e 01       		.uleb128 0x1
+ 971 000f 10       		.uleb128 0x10
+ 972 0010 17       		.uleb128 0x17
+ 973 0011 00       		.byte	0
+ 974 0012 00       		.byte	0
+ 975 0013 02       		.uleb128 0x2
+ 976 0014 24       		.uleb128 0x24
+ 977 0015 00       		.byte	0
+ 978 0016 0B       		.uleb128 0xb
+ 979 0017 0B       		.uleb128 0xb
+ 980 0018 3E       		.uleb128 0x3e
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 22
+
+
+ 981 0019 0B       		.uleb128 0xb
+ 982 001a 03       		.uleb128 0x3
+ 983 001b 0E       		.uleb128 0xe
+ 984 001c 00       		.byte	0
+ 985 001d 00       		.byte	0
+ 986 001e 03       		.uleb128 0x3
+ 987 001f 24       		.uleb128 0x24
+ 988 0020 00       		.byte	0
+ 989 0021 0B       		.uleb128 0xb
+ 990 0022 0B       		.uleb128 0xb
+ 991 0023 3E       		.uleb128 0x3e
+ 992 0024 0B       		.uleb128 0xb
+ 993 0025 03       		.uleb128 0x3
+ 994 0026 08       		.uleb128 0x8
+ 995 0027 00       		.byte	0
+ 996 0028 00       		.byte	0
+ 997 0029 04       		.uleb128 0x4
+ 998 002a 16       		.uleb128 0x16
+ 999 002b 00       		.byte	0
+ 1000 002c 03       		.uleb128 0x3
+ 1001 002d 0E       		.uleb128 0xe
+ 1002 002e 3A       		.uleb128 0x3a
+ 1003 002f 0B       		.uleb128 0xb
+ 1004 0030 3B       		.uleb128 0x3b
+ 1005 0031 05       		.uleb128 0x5
+ 1006 0032 49       		.uleb128 0x49
+ 1007 0033 13       		.uleb128 0x13
+ 1008 0034 00       		.byte	0
+ 1009 0035 00       		.byte	0
+ 1010 0036 05       		.uleb128 0x5
+ 1011 0037 04       		.uleb128 0x4
+ 1012 0038 01       		.byte	0x1
+ 1013 0039 0B       		.uleb128 0xb
+ 1014 003a 0B       		.uleb128 0xb
+ 1015 003b 49       		.uleb128 0x49
+ 1016 003c 13       		.uleb128 0x13
+ 1017 003d 3A       		.uleb128 0x3a
+ 1018 003e 0B       		.uleb128 0xb
+ 1019 003f 3B       		.uleb128 0x3b
+ 1020 0040 0B       		.uleb128 0xb
+ 1021 0041 01       		.uleb128 0x1
+ 1022 0042 13       		.uleb128 0x13
+ 1023 0043 00       		.byte	0
+ 1024 0044 00       		.byte	0
+ 1025 0045 06       		.uleb128 0x6
+ 1026 0046 28       		.uleb128 0x28
+ 1027 0047 00       		.byte	0
+ 1028 0048 03       		.uleb128 0x3
+ 1029 0049 0E       		.uleb128 0xe
+ 1030 004a 1C       		.uleb128 0x1c
+ 1031 004b 0B       		.uleb128 0xb
+ 1032 004c 00       		.byte	0
+ 1033 004d 00       		.byte	0
+ 1034 004e 07       		.uleb128 0x7
+ 1035 004f 16       		.uleb128 0x16
+ 1036 0050 00       		.byte	0
+ 1037 0051 03       		.uleb128 0x3
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 23
+
+
+ 1038 0052 0E       		.uleb128 0xe
+ 1039 0053 3A       		.uleb128 0x3a
+ 1040 0054 0B       		.uleb128 0xb
+ 1041 0055 3B       		.uleb128 0x3b
+ 1042 0056 0B       		.uleb128 0xb
+ 1043 0057 49       		.uleb128 0x49
+ 1044 0058 13       		.uleb128 0x13
+ 1045 0059 00       		.byte	0
+ 1046 005a 00       		.byte	0
+ 1047 005b 08       		.uleb128 0x8
+ 1048 005c 2E       		.uleb128 0x2e
+ 1049 005d 01       		.byte	0x1
+ 1050 005e 3F       		.uleb128 0x3f
+ 1051 005f 19       		.uleb128 0x19
+ 1052 0060 03       		.uleb128 0x3
+ 1053 0061 0E       		.uleb128 0xe
+ 1054 0062 3A       		.uleb128 0x3a
+ 1055 0063 0B       		.uleb128 0xb
+ 1056 0064 3B       		.uleb128 0x3b
+ 1057 0065 0B       		.uleb128 0xb
+ 1058 0066 27       		.uleb128 0x27
+ 1059 0067 19       		.uleb128 0x19
+ 1060 0068 11       		.uleb128 0x11
+ 1061 0069 01       		.uleb128 0x1
+ 1062 006a 12       		.uleb128 0x12
+ 1063 006b 06       		.uleb128 0x6
+ 1064 006c 40       		.uleb128 0x40
+ 1065 006d 18       		.uleb128 0x18
+ 1066 006e 9642     		.uleb128 0x2116
+ 1067 0070 19       		.uleb128 0x19
+ 1068 0071 01       		.uleb128 0x1
+ 1069 0072 13       		.uleb128 0x13
+ 1070 0073 00       		.byte	0
+ 1071 0074 00       		.byte	0
+ 1072 0075 09       		.uleb128 0x9
+ 1073 0076 0B       		.uleb128 0xb
+ 1074 0077 01       		.byte	0x1
+ 1075 0078 11       		.uleb128 0x11
+ 1076 0079 01       		.uleb128 0x1
+ 1077 007a 12       		.uleb128 0x12
+ 1078 007b 06       		.uleb128 0x6
+ 1079 007c 01       		.uleb128 0x1
+ 1080 007d 13       		.uleb128 0x13
+ 1081 007e 00       		.byte	0
+ 1082 007f 00       		.byte	0
+ 1083 0080 0A       		.uleb128 0xa
+ 1084 0081 34       		.uleb128 0x34
+ 1085 0082 00       		.byte	0
+ 1086 0083 03       		.uleb128 0x3
+ 1087 0084 0E       		.uleb128 0xe
+ 1088 0085 3A       		.uleb128 0x3a
+ 1089 0086 0B       		.uleb128 0xb
+ 1090 0087 3B       		.uleb128 0x3b
+ 1091 0088 0B       		.uleb128 0xb
+ 1092 0089 49       		.uleb128 0x49
+ 1093 008a 13       		.uleb128 0x13
+ 1094 008b 02       		.uleb128 0x2
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 24
+
+
+ 1095 008c 17       		.uleb128 0x17
+ 1096 008d 00       		.byte	0
+ 1097 008e 00       		.byte	0
+ 1098 008f 0B       		.uleb128 0xb
+ 1099 0090 898201   		.uleb128 0x4109
+ 1100 0093 00       		.byte	0
+ 1101 0094 11       		.uleb128 0x11
+ 1102 0095 01       		.uleb128 0x1
+ 1103 0096 31       		.uleb128 0x31
+ 1104 0097 13       		.uleb128 0x13
+ 1105 0098 00       		.byte	0
+ 1106 0099 00       		.byte	0
+ 1107 009a 0C       		.uleb128 0xc
+ 1108 009b 898201   		.uleb128 0x4109
+ 1109 009e 01       		.byte	0x1
+ 1110 009f 11       		.uleb128 0x11
+ 1111 00a0 01       		.uleb128 0x1
+ 1112 00a1 31       		.uleb128 0x31
+ 1113 00a2 13       		.uleb128 0x13
+ 1114 00a3 01       		.uleb128 0x1
+ 1115 00a4 13       		.uleb128 0x13
+ 1116 00a5 00       		.byte	0
+ 1117 00a6 00       		.byte	0
+ 1118 00a7 0D       		.uleb128 0xd
+ 1119 00a8 8A8201   		.uleb128 0x410a
+ 1120 00ab 00       		.byte	0
+ 1121 00ac 02       		.uleb128 0x2
+ 1122 00ad 18       		.uleb128 0x18
+ 1123 00ae 9142     		.uleb128 0x2111
+ 1124 00b0 18       		.uleb128 0x18
+ 1125 00b1 00       		.byte	0
+ 1126 00b2 00       		.byte	0
+ 1127 00b3 0E       		.uleb128 0xe
+ 1128 00b4 898201   		.uleb128 0x4109
+ 1129 00b7 01       		.byte	0x1
+ 1130 00b8 11       		.uleb128 0x11
+ 1131 00b9 01       		.uleb128 0x1
+ 1132 00ba 31       		.uleb128 0x31
+ 1133 00bb 13       		.uleb128 0x13
+ 1134 00bc 00       		.byte	0
+ 1135 00bd 00       		.byte	0
+ 1136 00be 0F       		.uleb128 0xf
+ 1137 00bf 2E       		.uleb128 0x2e
+ 1138 00c0 01       		.byte	0x1
+ 1139 00c1 3F       		.uleb128 0x3f
+ 1140 00c2 19       		.uleb128 0x19
+ 1141 00c3 03       		.uleb128 0x3
+ 1142 00c4 0E       		.uleb128 0xe
+ 1143 00c5 3A       		.uleb128 0x3a
+ 1144 00c6 0B       		.uleb128 0xb
+ 1145 00c7 3B       		.uleb128 0x3b
+ 1146 00c8 0B       		.uleb128 0xb
+ 1147 00c9 49       		.uleb128 0x49
+ 1148 00ca 13       		.uleb128 0x13
+ 1149 00cb 8701     		.uleb128 0x87
+ 1150 00cd 19       		.uleb128 0x19
+ 1151 00ce 11       		.uleb128 0x11
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 25
+
+
+ 1152 00cf 01       		.uleb128 0x1
+ 1153 00d0 12       		.uleb128 0x12
+ 1154 00d1 06       		.uleb128 0x6
+ 1155 00d2 40       		.uleb128 0x40
+ 1156 00d3 18       		.uleb128 0x18
+ 1157 00d4 9642     		.uleb128 0x2116
+ 1158 00d6 19       		.uleb128 0x19
+ 1159 00d7 01       		.uleb128 0x1
+ 1160 00d8 13       		.uleb128 0x13
+ 1161 00d9 00       		.byte	0
+ 1162 00da 00       		.byte	0
+ 1163 00db 10       		.uleb128 0x10
+ 1164 00dc 0B       		.uleb128 0xb
+ 1165 00dd 01       		.byte	0x1
+ 1166 00de 55       		.uleb128 0x55
+ 1167 00df 17       		.uleb128 0x17
+ 1168 00e0 01       		.uleb128 0x1
+ 1169 00e1 13       		.uleb128 0x13
+ 1170 00e2 00       		.byte	0
+ 1171 00e3 00       		.byte	0
+ 1172 00e4 11       		.uleb128 0x11
+ 1173 00e5 34       		.uleb128 0x34
+ 1174 00e6 00       		.byte	0
+ 1175 00e7 03       		.uleb128 0x3
+ 1176 00e8 0E       		.uleb128 0xe
+ 1177 00e9 3A       		.uleb128 0x3a
+ 1178 00ea 0B       		.uleb128 0xb
+ 1179 00eb 3B       		.uleb128 0x3b
+ 1180 00ec 0B       		.uleb128 0xb
+ 1181 00ed 49       		.uleb128 0x49
+ 1182 00ee 13       		.uleb128 0x13
+ 1183 00ef 3F       		.uleb128 0x3f
+ 1184 00f0 19       		.uleb128 0x19
+ 1185 00f1 02       		.uleb128 0x2
+ 1186 00f2 18       		.uleb128 0x18
+ 1187 00f3 00       		.byte	0
+ 1188 00f4 00       		.byte	0
+ 1189 00f5 12       		.uleb128 0x12
+ 1190 00f6 35       		.uleb128 0x35
+ 1191 00f7 00       		.byte	0
+ 1192 00f8 49       		.uleb128 0x49
+ 1193 00f9 13       		.uleb128 0x13
+ 1194 00fa 00       		.byte	0
+ 1195 00fb 00       		.byte	0
+ 1196 00fc 13       		.uleb128 0x13
+ 1197 00fd 2E       		.uleb128 0x2e
+ 1198 00fe 00       		.byte	0
+ 1199 00ff 3F       		.uleb128 0x3f
+ 1200 0100 19       		.uleb128 0x19
+ 1201 0101 3C       		.uleb128 0x3c
+ 1202 0102 19       		.uleb128 0x19
+ 1203 0103 6E       		.uleb128 0x6e
+ 1204 0104 0E       		.uleb128 0xe
+ 1205 0105 03       		.uleb128 0x3
+ 1206 0106 0E       		.uleb128 0xe
+ 1207 0107 3A       		.uleb128 0x3a
+ 1208 0108 0B       		.uleb128 0xb
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 26
+
+
+ 1209 0109 3B       		.uleb128 0x3b
+ 1210 010a 0B       		.uleb128 0xb
+ 1211 010b 00       		.byte	0
+ 1212 010c 00       		.byte	0
+ 1213 010d 14       		.uleb128 0x14
+ 1214 010e 2E       		.uleb128 0x2e
+ 1215 010f 00       		.byte	0
+ 1216 0110 3F       		.uleb128 0x3f
+ 1217 0111 19       		.uleb128 0x19
+ 1218 0112 3C       		.uleb128 0x3c
+ 1219 0113 19       		.uleb128 0x19
+ 1220 0114 6E       		.uleb128 0x6e
+ 1221 0115 0E       		.uleb128 0xe
+ 1222 0116 03       		.uleb128 0x3
+ 1223 0117 0E       		.uleb128 0xe
+ 1224 0118 3A       		.uleb128 0x3a
+ 1225 0119 0B       		.uleb128 0xb
+ 1226 011a 3B       		.uleb128 0x3b
+ 1227 011b 05       		.uleb128 0x5
+ 1228 011c 00       		.byte	0
+ 1229 011d 00       		.byte	0
+ 1230 011e 00       		.byte	0
+ 1231              		.section	.debug_loc,"",%progbits
+ 1232              	.Ldebug_loc0:
+ 1233              	.LLST0:
+ 1234 0000 2E000000 		.4byte	.LVL3
+ 1235 0004 30000000 		.4byte	.LVL4
+ 1236 0008 0100     		.2byte	0x1
+ 1237 000a 50       		.byte	0x50
+ 1238 000b 00000000 		.4byte	0
+ 1239 000f 00000000 		.4byte	0
+ 1240              	.LLST1:
+ 1241 0013 02000000 		.4byte	.LVL10
+ 1242 0017 12000000 		.4byte	.LVL13
+ 1243 001b 0200     		.2byte	0x2
+ 1244 001d 31       		.byte	0x31
+ 1245 001e 9F       		.byte	0x9f
+ 1246 001f 12000000 		.4byte	.LVL13
+ 1247 0023 2C000000 		.4byte	.LVL16
+ 1248 0027 0100     		.2byte	0x1
+ 1249 0029 54       		.byte	0x54
+ 1250 002a 2C000000 		.4byte	.LVL16
+ 1251 002e 30000000 		.4byte	.LVL17
+ 1252 0032 0200     		.2byte	0x2
+ 1253 0034 32       		.byte	0x32
+ 1254 0035 9F       		.byte	0x9f
+ 1255 0036 30000000 		.4byte	.LVL17
+ 1256 003a 5C000000 		.4byte	.LVL26
+ 1257 003e 0100     		.2byte	0x1
+ 1258 0040 54       		.byte	0x54
+ 1259 0041 A8000000 		.4byte	.LVL33
+ 1260 0045 C6000000 		.4byte	.LVL38
+ 1261 0049 0100     		.2byte	0x1
+ 1262 004b 54       		.byte	0x54
+ 1263 004c 00000000 		.4byte	0
+ 1264 0050 00000000 		.4byte	0
+ 1265              	.LLST2:
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 27
+
+
+ 1266 0054 4A000000 		.4byte	.LVL22
+ 1267 0058 4C000000 		.4byte	.LVL23
+ 1268 005c 0100     		.2byte	0x1
+ 1269 005e 50       		.byte	0x50
+ 1270 005f 4C000000 		.4byte	.LVL23
+ 1271 0063 48010000 		.4byte	.LFE34
+ 1272 0067 0100     		.2byte	0x1
+ 1273 0069 55       		.byte	0x55
+ 1274 006a 00000000 		.4byte	0
+ 1275 006e 00000000 		.4byte	0
+ 1276              		.section	.debug_aranges,"",%progbits
+ 1277 0000 24000000 		.4byte	0x24
+ 1278 0004 0200     		.2byte	0x2
+ 1279 0006 00000000 		.4byte	.Ldebug_info0
+ 1280 000a 04       		.byte	0x4
+ 1281 000b 00       		.byte	0
+ 1282 000c 0000     		.2byte	0
+ 1283 000e 0000     		.2byte	0
+ 1284 0010 00000000 		.4byte	.LFB33
+ 1285 0014 64000000 		.4byte	.LFE33-.LFB33
+ 1286 0018 00000000 		.4byte	.LFB34
+ 1287 001c 48010000 		.4byte	.LFE34-.LFB34
+ 1288 0020 00000000 		.4byte	0
+ 1289 0024 00000000 		.4byte	0
+ 1290              		.section	.debug_ranges,"",%progbits
+ 1291              	.Ldebug_ranges0:
+ 1292 0000 12000000 		.4byte	.LBB3
+ 1293 0004 14000000 		.4byte	.LBE3
+ 1294 0008 20000000 		.4byte	.LBB4
+ 1295 000c 48010000 		.4byte	.LBE4
+ 1296 0010 00000000 		.4byte	0
+ 1297 0014 00000000 		.4byte	0
+ 1298 0018 00000000 		.4byte	.LFB33
+ 1299 001c 64000000 		.4byte	.LFE33
+ 1300 0020 00000000 		.4byte	.LFB34
+ 1301 0024 48010000 		.4byte	.LFE34
+ 1302 0028 00000000 		.4byte	0
+ 1303 002c 00000000 		.4byte	0
+ 1304              		.section	.debug_line,"",%progbits
+ 1305              	.Ldebug_line0:
+ 1306 0000 73010000 		.section	.debug_str,"MS",%progbits,1
+ 1306      02001401 
+ 1306      00000201 
+ 1306      FB0E0D00 
+ 1306      01010101 
+ 1307              	.LASF30:
+ 1308 0000 43617053 		.ascii	"CapSense_GetCentroidPos\000"
+ 1308      656E7365 
+ 1308      5F476574 
+ 1308      43656E74 
+ 1308      726F6964 
+ 1309              	.LASF28:
+ 1310 0018 43795379 		.ascii	"CySysPmSleep\000"
+ 1310      73506D53 
+ 1310      6C656570 
+ 1310      00
+ 1311              	.LASF47:
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 28
+
+
+ 1312 0025 76616C75 		.ascii	"value\000"
+ 1312      6500
+ 1313              	.LASF20:
+ 1314 002b 64696D41 		.ascii	"dimAmount\000"
+ 1314      6D6F756E 
+ 1314      7400
+ 1315              	.LASF31:
+ 1316 0035 43617053 		.ascii	"CapSense_IsWidgetActive\000"
+ 1316      656E7365 
+ 1316      5F497357 
+ 1316      69646765 
+ 1316      74416374 
+ 1317              	.LASF25:
+ 1318 004d 50696E5F 		.ascii	"Pin_ZC_ClearInterrupt\000"
+ 1318      5A435F43 
+ 1318      6C656172 
+ 1318      496E7465 
+ 1318      72727570 
+ 1319              	.LASF12:
+ 1320 0063 646F7562 		.ascii	"double\000"
+ 1320      6C6500
+ 1321              	.LASF11:
+ 1322 006a 666C6F61 		.ascii	"float\000"
+ 1322      7400
+ 1323              	.LASF24:
+ 1324 0070 50696E5F 		.ascii	"Pin_LC_Write\000"
+ 1324      4C435F57 
+ 1324      72697465 
+ 1324      00
+ 1325              	.LASF27:
+ 1326 007d 43617053 		.ascii	"CapSense_ScanAllWidgets\000"
+ 1326      656E7365 
+ 1326      5F536361 
+ 1326      6E416C6C 
+ 1326      57696467 
+ 1327              	.LASF32:
+ 1328 0095 4C454434 		.ascii	"LED4_Write\000"
+ 1328      5F577269 
+ 1328      746500
+ 1329              	.LASF26:
+ 1330 00a0 43617053 		.ascii	"CapSense_IsBusy\000"
+ 1330      656E7365 
+ 1330      5F497342 
+ 1330      75737900 
+ 1331              	.LASF41:
+ 1332 00b0 50696E5F 		.ascii	"Pin_ZC_Int_StartEx\000"
+ 1332      5A435F49 
+ 1332      6E745F53 
+ 1332      74617274 
+ 1332      457800
+ 1333              	.LASF3:
+ 1334 00c3 73686F72 		.ascii	"short unsigned int\000"
+ 1334      7420756E 
+ 1334      7369676E 
+ 1334      65642069 
+ 1334      6E7400
+ 1335              	.LASF33:
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 29
+
+
+ 1336 00d6 4C454435 		.ascii	"LED5_Write\000"
+ 1336      5F577269 
+ 1336      746500
+ 1337              	.LASF19:
+ 1338 00e1 44455649 		.ascii	"DEVICE_STATE\000"
+ 1338      43455F53 
+ 1338      54415445 
+ 1338      00
+ 1339              	.LASF1:
+ 1340 00ee 756E7369 		.ascii	"unsigned char\000"
+ 1340      676E6564 
+ 1340      20636861 
+ 1340      7200
+ 1341              	.LASF5:
+ 1342 00fc 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1342      20756E73 
+ 1342      69676E65 
+ 1342      6420696E 
+ 1342      7400
+ 1343              	.LASF44:
+ 1344 010e 433A5C55 		.ascii	"C:\\Users\\rpbri\\Downloads\\Lab145_19\\Lab145\\Tem"
+ 1344      73657273 
+ 1344      5C727062 
+ 1344      72695C44 
+ 1344      6F776E6C 
+ 1345 013b 706C6174 		.ascii	"plate\\CE210709_CapSense_Linear_Slider_and_Buttons\\"
+ 1345      655C4345 
+ 1345      32313037 
+ 1345      30395F43 
+ 1345      61705365 
+ 1346 016d 6E657720 		.ascii	"new hoep.cydsn\000"
+ 1346      686F6570 
+ 1346      2E637964 
+ 1346      736E00
+ 1347              	.LASF14:
+ 1348 017c 6C6F6E67 		.ascii	"long double\000"
+ 1348      20646F75 
+ 1348      626C6500 
+ 1349              	.LASF46:
+ 1350 0188 6D61696E 		.ascii	"main\000"
+ 1350      00
+ 1351              	.LASF34:
+ 1352 018d 4C454436 		.ascii	"LED6_Write\000"
+ 1352      5F577269 
+ 1352      746500
+ 1353              	.LASF23:
+ 1354 0198 43794465 		.ascii	"CyDelayUs\000"
+ 1354      6C617955 
+ 1354      7300
+ 1355              	.LASF10:
+ 1356 01a2 75696E74 		.ascii	"uint32\000"
+ 1356      333200
+ 1357              	.LASF38:
+ 1358 01a9 4C454431 		.ascii	"LED10_Write\000"
+ 1358      305F5772 
+ 1358      69746500 
+ 1359              	.LASF8:
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 30
+
+
+ 1360 01b5 756E7369 		.ascii	"unsigned int\000"
+ 1360      676E6564 
+ 1360      20696E74 
+ 1360      00
+ 1361              	.LASF16:
+ 1362 01c2 53454E53 		.ascii	"SENSOR_SCAN\000"
+ 1362      4F525F53 
+ 1362      43414E00 
+ 1363              	.LASF35:
+ 1364 01ce 4C454437 		.ascii	"LED7_Write\000"
+ 1364      5F577269 
+ 1364      746500
+ 1365              	.LASF7:
+ 1366 01d9 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1366      206C6F6E 
+ 1366      6720756E 
+ 1366      7369676E 
+ 1366      65642069 
+ 1367              	.LASF29:
+ 1368 01f0 43617053 		.ascii	"CapSense_ProcessAllWidgets\000"
+ 1368      656E7365 
+ 1368      5F50726F 
+ 1368      63657373 
+ 1368      416C6C57 
+ 1369              	.LASF39:
+ 1370 020b 4C454431 		.ascii	"LED11_Write\000"
+ 1370      315F5772 
+ 1370      69746500 
+ 1371              	.LASF22:
+ 1372 0217 63656E74 		.ascii	"centroid\000"
+ 1372      726F6964 
+ 1372      00
+ 1373              	.LASF36:
+ 1374 0220 4C454438 		.ascii	"LED8_Write\000"
+ 1374      5F577269 
+ 1374      746500
+ 1375              	.LASF15:
+ 1376 022b 73697A65 		.ascii	"sizetype\000"
+ 1376      74797065 
+ 1376      00
+ 1377              	.LASF6:
+ 1378 0234 6C6F6E67 		.ascii	"long long int\000"
+ 1378      206C6F6E 
+ 1378      6720696E 
+ 1378      7400
+ 1379              	.LASF43:
+ 1380 0242 6D61696E 		.ascii	"main.c\000"
+ 1380      2E6300
+ 1381              	.LASF13:
+ 1382 0249 63686172 		.ascii	"char\000"
+ 1382      00
+ 1383              	.LASF45:
+ 1384 024e 50696E5F 		.ascii	"Pin_ZC_Handler\000"
+ 1384      5A435F48 
+ 1384      616E646C 
+ 1384      657200
+ 1385              	.LASF37:
+ARM GAS  C:\Users\rpbri\AppData\Local\Temp\ccb6sQes.s 			page 31
+
+
+ 1386 025d 4C454439 		.ascii	"LED9_Write\000"
+ 1386      5F577269 
+ 1386      746500
+ 1387              	.LASF2:
+ 1388 0268 73686F72 		.ascii	"short int\000"
+ 1388      7420696E 
+ 1388      7400
+ 1389              	.LASF9:
+ 1390 0272 75696E74 		.ascii	"uint8\000"
+ 1390      3800
+ 1391              	.LASF4:
+ 1392 0278 6C6F6E67 		.ascii	"long int\000"
+ 1392      20696E74 
+ 1392      00
+ 1393              	.LASF18:
+ 1394 0281 50524F43 		.ascii	"PROCESS_DATA\000"
+ 1394      4553535F 
+ 1394      44415441 
+ 1394      00
+ 1395              	.LASF42:
+ 1396 028e 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 1396      43313120 
+ 1396      352E342E 
+ 1396      31203230 
+ 1396      31363036 
+ 1397 02c1 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m0plus -mthumb -"
+ 1397      20726576 
+ 1397      6973696F 
+ 1397      6E203233 
+ 1397      37373135 
+ 1398 02f4 67202D4F 		.ascii	"g -Og -ffunction-sections -ffat-lto-objects\000"
+ 1398      67202D66 
+ 1398      66756E63 
+ 1398      74696F6E 
+ 1398      2D736563 
+ 1399              	.LASF0:
+ 1400 0320 7369676E 		.ascii	"signed char\000"
+ 1400      65642063 
+ 1400      68617200 
+ 1401              	.LASF17:
+ 1402 032c 57414954 		.ascii	"WAIT_FOR_SCAN_COMPLETE\000"
+ 1402      5F464F52 
+ 1402      5F534341 
+ 1402      4E5F434F 
+ 1402      4D504C45 
+ 1403              	.LASF40:
+ 1404 0343 43617053 		.ascii	"CapSense_Start\000"
+ 1404      656E7365 
+ 1404      5F537461 
+ 1404      727400
+ 1405              	.LASF21:
+ 1406 0352 63757272 		.ascii	"currentState\000"
+ 1406      656E7453 
+ 1406      74617465 
+ 1406      00
+ 1407              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran
